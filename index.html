@@ -1311,13 +1311,20 @@
         maxTokens: parseInt(document.getElementById('cfgMaxTokens').value, 10) || 2048,
         temperature: parseFloat(document.getElementById('cfgTemperature').value)
       };
+      try {
+        localStorage.setItem('magicTodoConfig', JSON.stringify(cfg));
+      } catch (e) {
+        console.warn('[MagicToDo] iframe localStorage save failed', e);
+      }
       var res = await postToHost({ type: 'magic-save-config', config: cfg });
       if (res && res.config) {
         config = res.config;
         showSnack('Settings saved', 'SUCCESS');
         closeSettings();
       } else {
-        showSnack('Failed to save settings', 'ERROR');
+        showSnack('Settings saved locally (host save failed)', 'WARNING');
+        config = cfg;
+        closeSettings();
       }
     }
 
@@ -1489,10 +1496,34 @@
 
       if (data.type === 'magic-init') {
         config = data.config || null;
+        if (!config) {
+          try {
+            const saved = localStorage.getItem('magicTodoConfig');
+            if (saved) {
+              config = JSON.parse(saved);
+              console.log('[MagicToDo] config loaded from iframe localStorage fallback');
+            }
+          } catch (e) {
+            console.warn('[MagicToDo] iframe localStorage load failed', e);
+          }
+        }
+        if (!config) {
+          console.log('[MagicToDo] magic-init had no config, requesting from host');
+          window.parent.postMessage({ type: 'magic-get-config' }, '*');
+        }
         if (data.currentTaskId) {
           currentTask = { id: data.currentTaskId };
         }
         await renderAll();
+        return;
+      }
+
+      if (data.type === 'magic-config-response') {
+        if (data && data.config) {
+          config = data.config;
+          console.log('[MagicToDo] config loaded from host magic-config-response');
+          await renderAll();
+        }
         return;
       }
 
@@ -1534,6 +1565,12 @@
     async function init() {
       try {
         window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
+        setTimeout(function () {
+          if (!config) {
+            console.log('[MagicToDo] magic-init not received yet, requesting config from host');
+            window.parent.postMessage({ type: 'magic-get-config' }, '*');
+          }
+        }, 800);
         await renderAll();
       } catch (e) {
         console.error('[MagicToDo] init failed:', e);

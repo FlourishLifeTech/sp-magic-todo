@@ -1291,11 +1291,23 @@
 
     // ==================== SETTINGS ====================
     function openSettings() {
-      document.getElementById('cfgBaseUrl').value = (config && config.baseUrl) || 'http://localhost:8080/v1';
-      document.getElementById('cfgApiKey').value = (config && config.apiKey) || '';
-      document.getElementById('cfgModel').value = (config && config.model) || 'gpt-4o';
-      document.getElementById('cfgMaxTokens').value = (config && config.maxTokens) || 2048;
-      document.getElementById('cfgTemperature').value = (config && config.temperature !== undefined) ? config.temperature : 0.7;
+      var cfg = null;
+      try {
+        if (typeof PluginAPI?.loadSyncedData === 'function') {
+          const saved = PluginAPI.loadSyncedData('magicTodoConfig');
+          if (saved) cfg = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.warn('[MagicToDo] iframe PluginAPI load failed', e);
+      }
+      if (!cfg) {
+        cfg = config;
+      }
+      document.getElementById('cfgBaseUrl').value = (cfg && cfg.baseUrl) || 'http://localhost:8080/v1';
+      document.getElementById('cfgApiKey').value = (cfg && cfg.apiKey) || '';
+      document.getElementById('cfgModel').value = (cfg && cfg.model) || 'gpt-4o';
+      document.getElementById('cfgMaxTokens').value = (cfg && cfg.maxTokens) || 2048;
+      document.getElementById('cfgTemperature').value = (cfg && cfg.temperature !== undefined) ? cfg.temperature : 0.7;
       showOverlay('settingsOverlay');
     }
 
@@ -1311,21 +1323,25 @@
         maxTokens: parseInt(document.getElementById('cfgMaxTokens').value, 10) || 2048,
         temperature: parseFloat(document.getElementById('cfgTemperature').value)
       };
+      var saved = false;
       try {
-        localStorage.setItem('magicTodoConfig', JSON.stringify(cfg));
+        if (typeof PluginAPI?.persistDataSynced === 'function') {
+          await PluginAPI.persistDataSynced(JSON.stringify(cfg), 'magicTodoConfig');
+          saved = true;
+        }
       } catch (e) {
-        console.warn('[MagicToDo] iframe localStorage save failed', e);
+        console.warn('[MagicToDo] iframe PluginAPI save failed', e);
       }
-      var res = await postToHost({ type: 'magic-save-config', config: cfg });
-      if (res && res.config) {
-        config = res.config;
-        showSnack('Settings saved', 'SUCCESS');
-        closeSettings();
-      } else {
-        showSnack('Settings saved locally (host save failed)', 'WARNING');
-        config = cfg;
-        closeSettings();
+      if (!saved) {
+        try {
+          localStorage.setItem('magicTodoConfig', JSON.stringify(cfg));
+        } catch (e) {
+          console.warn('[MagicToDo] iframe localStorage save failed', e);
+        }
       }
+      config = cfg;
+      showSnack('Settings saved', 'SUCCESS');
+      closeSettings();
     }
 
     async function testConnection() {

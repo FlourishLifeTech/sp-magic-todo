@@ -1514,6 +1514,19 @@
         config = data.config || null;
         if (!config) {
           try {
+            if (typeof PluginAPI?.loadSyncedData === 'function') {
+              const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
+              if (saved) {
+                config = JSON.parse(saved);
+                console.log('[MagicToDo] config loaded from iframe PluginAPI fallback');
+              }
+            }
+          } catch (e) {
+            console.warn('[MagicToDo] iframe PluginAPI load failed', e);
+          }
+        }
+        if (!config) {
+          try {
             const saved = localStorage.getItem('magicTodoConfig');
             if (saved) {
               config = JSON.parse(saved);

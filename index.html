@@ -1564,13 +1564,17 @@
     // ==================== BOOTSTRAP ====================
     async function init() {
       try {
+        var readyTimer = setInterval(function () {
+          window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
+        }, 400);
         window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
         setTimeout(function () {
+          clearInterval(readyTimer);
           if (!config) {
-            console.log('[MagicToDo] magic-init not received yet, requesting config from host');
+            console.log('[MagicToDo] still no config after retries, requesting from host');
             window.parent.postMessage({ type: 'magic-get-config' }, '*');
           }
-        }, 800);
+        }, 2000);
         await renderAll();
       } catch (e) {
         console.error('[MagicToDo] init failed:', e);

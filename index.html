@@ -540,19 +540,6 @@
     </div>
   </div>
 
-  <!-- Breakdown kind overlay (subtasks / checklist) -->
-  <div id="kindOverlay" class="overlay hidden">
-    <div class="panel">
-      <h3 id="kindTitle">Break down</h3>
-      <div id="kindMsg" class="confirm-msg"></div>
-      <div class="actions">
-        <button id="btnKindSubtasks" class="icon-btn primary">➕ Add subtasks</button>
-        <button id="btnKindChecklist" class="icon-btn">☑ Add checklist</button>
-        <button id="btnKindCancel" class="icon-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Preview overlay -->
   <div id="previewOverlay" class="overlay hidden">
     <div class="panel">
@@ -1021,30 +1008,9 @@
       });
     }
 
-    // Choose what to add when breaking down a main task: subtasks or a checklist.
-    function showKind(msg) {
-      return new Promise(function (resolve) {
-        document.getElementById('kindMsg').textContent = msg;
-        showOverlay('kindOverlay');
-        var subtasks = document.getElementById('btnKindSubtasks');
-        var checklist = document.getElementById('btnKindChecklist');
-        var cancel = document.getElementById('btnKindCancel');
-        var done = function (val) {
-          hideOverlay('kindOverlay');
-          subtasks.onclick = null;
-          checklist.onclick = null;
-          cancel.onclick = null;
-          resolve(val);
-        };
-        subtasks.onclick = function () { done('subtasks'); };
-        checklist.onclick = function () { done('checklist'); };
-        cancel.onclick = function () { done('cancel'); };
-      });
-    }
-
     // ==================== PREVIEW MODAL ====================
     // Shows ASCII tree + editable rows. Resolves with array of {title,note} or null.
-    function showPreview(task, subtasks, isRewrite, showNoteOption) {
+    function showPreview(task, subtasks, isRewrite, noteDefaultChecked) {
       return new Promise(function (resolve) {
         var list = subtasks.map(function (s) { return { title: s.title, note: s.note }; });
         var asciiEl = document.getElementById('previewAscii');
@@ -1057,8 +1023,8 @@
 
         titleEl.textContent = isRewrite ? 'Rewrite step' : 'Preview breakdown';
         statusEl.innerHTML = '';
-        if (noteField) noteField.style.display = showNoteOption ? '' : 'none';
-        if (noteChk) noteChk.checked = true;
+        if (noteField) noteField.style.display = isRewrite ? 'none' : '';
+        if (noteChk) noteChk.checked = !!noteDefaultChecked;
 
         function renderAscii() {
           var lines = [];
@@ -1155,7 +1121,7 @@
             showSnack('Add at least one subtask title', 'WARNING');
             return;
           }
-          done({ items: valid, storeInNote: showNoteOption ? !!noteChk.checked : false });
+          done({ items: valid, storeInNote: isRewrite ? false : !!noteChk.checked });
         };
       });
     }
@@ -1191,14 +1157,12 @@
 
         // Hierarchy check: subtasks can only get a checklist; main tasks can
         // get subtasks or a checklist.
+        // Main tasks default to subtasks; subtasks stay checklist-only.
         var kind = 'subtasks';
         if (mode === 'rewrite') {
           // single-step rewrite, unaffected by hierarchy choice
         } else if (depth === 1) {
           kind = 'checklist'; // subtask → checklist only
-        } else {
-          kind = await showKind('How do you want to break down "' + task.title + '"?');
-          if (kind === 'cancel') return;
         }
 
         var children = getChildren(task.id);
@@ -1269,11 +1233,11 @@
           return;
         }
 
-        // Show "store checklist in note" when adding a checklist.
+        // Preview always offers the "store as checklist in note" checkbox.
         var confirmed = await showPreview(task, parsed, false, kind === 'checklist');
         if (!confirmed) return;
 
-        if (kind === 'checklist') {
+        if (confirmed.storeInNote) {
           // Append checklist to the task note after the last line — no child tasks.
           var fullTask = taskMap[task.id] || task;
           var newNotes = setChecklistInNote(fullTask.notes || '', confirmed.items);

@@ -1,0 +1,25 @@
+{
+  "id": "magic-todo",
+  "name": "Magic ToDo",
+  "version": "1.0.1",
+  "description": "Break tasks into subtasks with an OpenAI-compatible AI endpoint. Up to 3 levels: task, subtasks, and checklist sub-subtasks.",
+  "manifestVersion": 1,
+  "minSupVersion": "14.0.0",
+  "permissions": [
+    "getTasks",
+    "getSelectedTask",
+    "getFocusedTask",
+    "getAllProjects",
+    "getAllTags",
+    "addTask",
+    "updateTask",
+    "deleteTask",
+    "openDialog",
+    "showSnack",
+    "persistDataSynced",
+    "loadSyncedData"
+  ],
+  "hooks": ["CURRENT_TASK_CHANGE", "ANY_TASK_UPDATE"],
+  "iFrame": true,
+  "sidePanel": true
+}

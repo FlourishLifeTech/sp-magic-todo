@@ -155,6 +155,7 @@
       color: var(--text-color-muted, #888);
       margin-top: 2px;
       word-break: break-word;
+      white-space: pre-wrap;
     }
 
     .clist {
@@ -552,6 +553,16 @@
           <input type="checkbox" id="chkStoreNote" checked style="width:auto;margin:0;" /> Store checklist in note
         </label>
       </div>
+      <div class="field" id="previewIncludeField" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.9em;color:var(--text-color);cursor:pointer;">
+          <input type="checkbox" id="chkIncludeNote" style="width:auto;margin:0;" /> Include note in AI prompt
+        </label>
+      </div>
+      <div class="field" id="previewKeepSubtasksField" style="display:none;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.9em;color:var(--text-color);cursor:pointer;">
+          <input type="checkbox" id="chkKeepSubtasks" style="width:auto;margin:0;" /> Keep existing subtasks
+        </label>
+      </div>
       <button id="btnAddStep" class="icon-btn add-step">＋ Add step</button>
       <div class="actions">
         <button id="btnPreviewCancel" class="icon-btn">Cancel</button>
@@ -624,11 +635,34 @@
       }
     }
 
-    // Append checklist markdown to a note as new lines after the last line.
+    // Remove plugin metadata lines (e.g. __task_colors__=...) for AI prompts.
+    function stripMetadataForAI(notes) {
+      return String(notes || '')
+        .split('\n')
+        .filter(function (line) { return !/^__\w+__\s*=/i.test(line); })
+        .join('\n')
+        .trim();
+    }
+
+    // Append checklist markdown to a note, after the last checklist line if present.
     function setChecklistInNote(note, items) {
-      var base = String(note || '').trim();
+      var base = String(note || '');
       var checklist = items.map(function (it) { return '- [ ] ' + it.title; }).join('\n');
-      return base ? base + '\n' + checklist : checklist;
+      if (!base.trim()) return checklist;
+      var lines = base.split('\n');
+      var lastChecklistIdx = -1;
+      for (var i = lines.length - 1; i >= 0; i--) {
+        if (/^\s*-\s*\[[ xX]\]/.test(lines[i])) {
+          lastChecklistIdx = i;
+          break;
+        }
+      }
+      if (lastChecklistIdx >= 0) {
+        var after = lines.slice(lastChecklistIdx + 1).join('\n');
+        var before = lines.slice(0, lastChecklistIdx + 1).join('\n');
+        return before + '\n' + checklist + (after ? '\n' + after : '');
+      }
+      return base + '\n' + checklist;
     }
 
     // Parse `- [ ]` / `- [x]` lines out of a note.
@@ -1010,7 +1044,7 @@
 
     // ==================== PREVIEW MODAL ====================
     // Shows ASCII tree + editable rows. Resolves with array of {title,note} or null.
-    function showPreview(task, subtasks, isRewrite, noteDefaultChecked) {
+    function showPreview(task, subtasks, isRewrite, noteDefaultChecked, showIncludeNote, includeNoteChecked, showKeepSubtasks, keepSubtasksChecked) {
       return new Promise(function (resolve) {
         var list = subtasks.map(function (s) { return { title: s.title, note: s.note }; });
         var asciiEl = document.getElementById('previewAscii');
@@ -1020,11 +1054,19 @@
         var titleEl = document.getElementById('previewTitle');
         var noteField = document.getElementById('previewNoteField');
         var noteChk = document.getElementById('chkStoreNote');
+        var includeField = document.getElementById('previewIncludeField');
+        var includeChk = document.getElementById('chkIncludeNote');
+        var keepField = document.getElementById('previewKeepSubtasksField');
+        var keepChk = document.getElementById('chkKeepSubtasks');
 
         titleEl.textContent = isRewrite ? 'Rewrite step' : 'Preview breakdown';
         statusEl.innerHTML = '';
         if (noteField) noteField.style.display = isRewrite ? 'none' : '';
         if (noteChk) noteChk.checked = !!noteDefaultChecked;
+        if (includeField) includeField.style.display = showIncludeNote ? '' : 'none';
+        if (includeChk) includeChk.checked = !!includeNoteChecked;
+        if (keepField) keepField.style.display = showKeepSubtasks ? '' : 'none';
+        if (keepChk) keepChk.checked = !!keepSubtasksChecked;
 
         function renderAscii() {
           var lines = [];
@@ -1121,7 +1163,7 @@
             showSnack('Add at least one subtask title', 'WARNING');
             return;
           }
-          done({ items: valid, storeInNote: isRewrite ? false : !!noteChk.checked });
+          done({ items: valid, storeInNote: isRewrite ? false : !!noteChk.checked, includeNote: !!includeChk?.checked, keepSubtasks: !!keepChk?.checked });
         };
       });
     }
@@ -1174,24 +1216,17 @@
             renderTree();
             return;
           }
-          // regenerate
-          var ok = await showConfirm('Regenerate', 'Replace the existing ' + children.length + ' subtask(s)? This deletes them and creates new ones.');
-          if (!ok) return;
-          for (var i = 0; i < children.length; i++) {
-            await doCrud('delete', children[i].id);
-          }
-          await buildTaskMap();
         }
 
         if (mode === 'rewrite') {
           var sysR = 'Rewrite this single step to be clearer and more actionable. Respond with ONLY a JSON array containing exactly one object with keys "title" (short action-oriented, at most 8 words) and "note" (one short sentence, at most 20 words).';
-          var userR = 'Step: ' + task.title + (task.notes ? '\nNote: ' + task.notes : '') + getPromptInstructions(task);
+          var userR = 'Step: ' + task.title + (task.notes ? '\nNote: ' + stripMetadataForAI(task.notes) : '') + getPromptInstructions(task);
           var rawR = await callOpenAI(sysR, userR);
           var parsedR = parseSubtasks(rawR);
           if (parsedR.length === 0) throw new Error('AI returned no steps');
-          var confirmedR = await showPreview(task, parsedR, true, false);
+          var confirmedR = await showPreview(task, parsedR, true, false, !!(task.notes && task.notes.trim()), !!(task.notes && task.notes.trim()), false, false);
           if (!confirmedR) return;
-          var upd = { title: confirmedR.items[0].title, notes: confirmedR.items[0].note };
+          var upd = { title: confirmedR.items[0].title, notes: confirmedR.includeNote ? (task.notes || confirmedR.items[0].note) : confirmedR.items[0].note };
           await doCrud('update', task.id, upd);
           showSnack('Step rewritten', 'SUCCESS');
           await renderAll();
@@ -1200,7 +1235,7 @@
 
         // create / regenerate — prompt depends on what we're adding
         var sys = kind === 'checklist' ? buildSystemPrompt(1) : buildSystemPrompt(0);
-        var user = 'Task: ' + task.title + (task.notes ? '\nNotes: ' + task.notes : '') +
+        var user = 'Task: ' + task.title + (task.notes ? '\nNotes: ' + stripMetadataForAI(task.notes) : '') +
           (kind === 'checklist' ? '\n\nBreak it down into a checklist of micro-steps.' : '\n\nBreak it down into subtasks.') +
           getPromptInstructions(task);
         var statusEl = document.getElementById('previewStatus');
@@ -1234,16 +1269,23 @@
         }
 
         // Preview always offers the "store as checklist in note" checkbox.
-        var confirmed = await showPreview(task, parsed, false, kind === 'checklist');
+        var hasExistingChildren = children.length > 0;
+        var confirmed = await showPreview(task, parsed, false, kind === 'checklist', !!(task.notes && task.notes.trim()), !!(task.notes && task.notes.trim()), hasExistingChildren, false);
         if (!confirmed) return;
 
         if (confirmed.storeInNote) {
-          // Append checklist to the task note after the last line — no child tasks.
+          // Append checklist to the task note after the last checklist line if present.
           var fullTask = taskMap[task.id] || task;
           var newNotes = setChecklistInNote(fullTask.notes || '', confirmed.items);
           await doCrud('update', task.id, { notes: newNotes });
           showSnack('Checklist added to "' + task.title + '"', 'SUCCESS');
         } else {
+          if (!confirmed.keepSubtasks) {
+            for (var i = 0; i < children.length; i++) {
+              await doCrud('delete', children[i].id);
+            }
+            await buildTaskMap();
+          }
           for (var j = 0; j < confirmed.items.length; j++) {
             await doCrud('add', {
               title: confirmed.items[j].title,

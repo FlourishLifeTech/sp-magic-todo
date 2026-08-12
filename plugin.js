@@ -28,9 +28,9 @@ function sendToIframe(msg) {
   }
 }
 
-function loadConfig() {
+async function loadConfig() {
   try {
-    const saved = localStorage.getItem(CONFIG_KEY);
+    const saved = await PluginAPI.loadSyncedData(CONFIG_KEY);
     if (saved) {
       config = JSON.parse(saved);
     } else {
@@ -41,12 +41,12 @@ function loadConfig() {
   }
 }
 
-function saveConfig(cfg) {
+async function saveConfig(cfg) {
   config = cfg;
   try {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+    await PluginAPI.persistDataSynced(JSON.stringify(cfg), CONFIG_KEY);
   } catch (e) {
-    // ignore storage errors
+    // ignore persistence errors
   }
 }
 

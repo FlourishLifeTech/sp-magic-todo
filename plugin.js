@@ -134,16 +134,16 @@ async function computeDepth(taskId) {
 // showIndexHtmlAsView — that opens a full-screen route, which is not what we want.
 function openSidePanel() {
   try {
-    const buttons = document.querySelectorAll('button.plugin-side-panel-btn');
-    for (const btn of buttons) {
+    const candidates = document.querySelectorAll('button.plugin-side-panel-btn, [class*="side-panel"] button, [class*="sidePanel"] button, [class*="plugin-panel"] button');
+    for (const btn of candidates) {
       const tooltip = (btn.getAttribute('matTooltip') || '').toLowerCase();
-      if (tooltip.indexOf('magic todo') !== -1) {
-        // Only click when the panel isn't already showing this plugin
-        // (Angular adds .active when activePluginId === pluginId && panel shown).
+      const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+      const text = (btn.textContent || '').toLowerCase();
+      if (tooltip.indexOf('magic todo') !== -1 || tooltip.indexOf('magic-todo') !== -1 ||
+          ariaLabel.indexOf('magic todo') !== -1 || ariaLabel.indexOf('magic-todo') !== -1 ||
+          text.indexOf('magic todo') !== -1 || text.indexOf('magic-todo') !== -1) {
         if (!btn.classList.contains('active')) {
           btn.click();
-          // Panel is (re)opening: the iframe reloads and will signal ready again,
-          // so buffer any breakdown request until then.
           iframeReady = false;
           iframeWindow = null;
         }

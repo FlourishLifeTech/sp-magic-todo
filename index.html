@@ -1286,15 +1286,30 @@
             }
             await buildTaskMap();
           }
+          var addedIds = [];
           for (var j = 0; j < confirmed.items.length; j++) {
-            await doCrud('add', {
+            var addRes = await doCrud('add', {
               title: confirmed.items[j].title,
               notes: confirmed.items[j].note,
               parentId: task.id,
               projectId: task.projectId || null
             });
+            if (addRes && addRes.id) {
+              taskMap[addRes.id] = {
+                id: addRes.id,
+                title: confirmed.items[j].title,
+                notes: confirmed.items[j].note,
+                parentId: task.id,
+                projectId: task.projectId || null
+              };
+              addedIds.push(addRes.id);
+            }
           }
-          showSnack('Created ' + confirmed.items.length + ' subtask(s)', 'SUCCESS');
+          showSnack('Created ' + addedIds.length + ' subtask(s)', 'SUCCESS');
+          if (addedIds.length) {
+            renderCurrentTask();
+            renderTree();
+          }
         }
         await renderAll();
       } catch (e) {

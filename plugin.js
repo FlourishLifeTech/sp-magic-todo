@@ -438,9 +438,21 @@ function register() {
 
 async function init() {
   try {
+    // Preload config synchronously so we never send magic-init with null.
+    try {
+      const saved = localStorage.getItem(CONFIG_KEY);
+      if (saved) {
+        config = JSON.parse(saved);
+        console.log('[MagicToDo] config preloaded from localStorage before register');
+      }
+    } catch (e) {
+      // ignore
+    }
+
     register();
     await loadConfig();
-    if (iframeReady) {
+
+    if (iframeReady && iframeWindow) {
       sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });
     }
   } catch (e) {

@@ -29,43 +29,55 @@ function sendToIframe(msg) {
 }
 
 async function loadConfig() {
+  let loaded = false;
   try {
-    const saved = await PluginAPI.loadSyncedData?.(CONFIG_KEY);
-    if (saved) {
-      config = JSON.parse(saved);
-      console.log('[MagicToDo] config loaded via PluginAPI');
-      return;
+    if (typeof PluginAPI?.loadSyncedData === 'function') {
+      const saved = await PluginAPI.loadSyncedData(CONFIG_KEY);
+      if (saved) {
+        config = JSON.parse(saved);
+        loaded = true;
+        console.log('[MagicToDo] config loaded via PluginAPI');
+      }
     }
   } catch (e) {
     console.warn('[MagicToDo] PluginAPI.loadSyncedData failed, falling back to localStorage', e);
   }
-  try {
-    const saved = localStorage.getItem(CONFIG_KEY);
-    if (saved) {
-      config = JSON.parse(saved);
-      console.log('[MagicToDo] config loaded via localStorage');
-    } else {
+  if (!loaded) {
+    try {
+      const saved = localStorage.getItem(CONFIG_KEY);
+      if (saved) {
+        config = JSON.parse(saved);
+        console.log('[MagicToDo] config loaded via localStorage');
+      } else {
+        config = null;
+      }
+    } catch (e) {
       config = null;
     }
-  } catch (e) {
-    config = null;
   }
 }
 
 async function saveConfig(cfg) {
   config = cfg;
+  let apiOk = false;
   try {
-    await PluginAPI.persistDataSynced?.(JSON.stringify(cfg), CONFIG_KEY);
-    console.log('[MagicToDo] config saved via PluginAPI');
-    return;
+    if (typeof PluginAPI?.persistDataSynced === 'function') {
+      await PluginAPI.persistDataSynced(JSON.stringify(cfg), CONFIG_KEY);
+      apiOk = true;
+      console.log('[MagicToDo] config saved via PluginAPI');
+    }
   } catch (e) {
-    console.warn('[MagicToDo] PluginAPI.persistDataSynced failed, falling back to localStorage', e);
+    console.warn('[MagicToDo] PluginAPI.persistDataSynced failed', e);
   }
   try {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
-    console.log('[MagicToDo] config saved via localStorage');
+    if (apiOk) {
+      console.log('[MagicToDo] config also saved via localStorage for fallback');
+    } else {
+      console.log('[MagicToDo] config saved via localStorage');
+    }
   } catch (e) {
-    // ignore storage errors
+    console.warn('[MagicToDo] localStorage save failed', e);
   }
 }
 
@@ -342,6 +354,13 @@ function register() {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
 
+    if (data.type === 'magic-get-config') {
+      if (event.source) {
+        event.source.postMessage({ type: 'magic-config-response', config: config }, '*');
+      }
+      return;
+    }
+
     if (data.type === 'magic-iframe-ready') {
       iframeWindow = event.source;
       iframeReady = true;
@@ -419,8 +438,11 @@ function register() {
 
 async function init() {
   try {
-    await loadConfig();
     register();
+    await loadConfig();
+    if (iframeReady) {
+      sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });
+    }
   } catch (e) {
     console.error('Magic ToDo plugin init failed:', e);
   }

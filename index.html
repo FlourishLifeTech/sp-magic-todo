@@ -1511,48 +1511,10 @@
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'magic-init') {
-        config = data.config || null;
-        if (!config) {
-          try {
-            if (typeof PluginAPI?.loadSyncedData === 'function') {
-              const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
-              if (saved) {
-                config = JSON.parse(saved);
-                console.log('[MagicToDo] config loaded from iframe PluginAPI fallback');
-              }
-            }
-          } catch (e) {
-            console.warn('[MagicToDo] iframe PluginAPI load failed', e);
-          }
-        }
-        if (!config) {
-          try {
-            const saved = localStorage.getItem('magicTodoConfig');
-            if (saved) {
-              config = JSON.parse(saved);
-              console.log('[MagicToDo] config loaded from iframe localStorage fallback');
-            }
-          } catch (e) {
-            console.warn('[MagicToDo] iframe localStorage load failed', e);
-          }
-        }
-        if (!config) {
-          console.log('[MagicToDo] magic-init had no config, requesting from host');
-          window.parent.postMessage({ type: 'magic-get-config' }, '*');
-        }
         if (data.currentTaskId) {
           currentTask = { id: data.currentTaskId };
         }
         await renderAll();
-        return;
-      }
-
-      if (data.type === 'magic-config-response') {
-        if (data && data.config) {
-          config = data.config;
-          console.log('[MagicToDo] config loaded from host magic-config-response');
-          await renderAll();
-        }
         return;
       }
 

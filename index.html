@@ -96,6 +96,20 @@
       margin-top: var(--s);
     }
 
+    .filter-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85em;
+      color: var(--text-color-muted, #888);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .filter-label input {
+      cursor: pointer;
+    }
+
     .tree {
       display: flex;
       flex-direction: column;
@@ -460,6 +474,9 @@
     <div class="section-title">Breakdown</div>
     <div class="toolbar" style="margin-top:0;margin-bottom:var(--s);">
       <button id="btnRegenerateAll" class="icon-btn" style="display:none;">↻ Regenerate all</button>
+      <label class="filter-label" title="Show only tasks that have no subtasks">
+        <input type="checkbox" id="chkLeafOnly" style="width:auto;margin:0;" /> Only tasks without subtasks
+      </label>
     </div>
     <div id="tree" class="tree">
       <div class="empty-state">Select a task to see its breakdown.</div>
@@ -858,6 +875,7 @@
       }
       var children = getChildren(currentTask.id);
       regenBtn.style.display = children.length ? '' : 'none';
+      var leafOnly = document.getElementById('chkLeafOnly').checked;
       if (children.length === 0) {
         // No subtasks — still show the current task's own checklist/note if present.
         var ownCl = renderChecklistHtml(taskMap[currentTask.id] || currentTask);
@@ -871,8 +889,12 @@
       var html = '';
       children.forEach(function (child) {
         var depth = computeDepthOf(child.id);
-        html += renderNode(child, depth, false);
         var grand = getChildren(child.id);
+        if (!(leafOnly && grand.length > 0)) {
+          html += renderNode(child, depth, false);
+        }
+        // Grandchildren are always leaves (depth 2 is max), so they stay visible
+        // even when their parent is hidden by the "no subtasks" filter.
         grand.forEach(function (g) {
           html += renderNode(g, 2, true);
         });
@@ -1384,6 +1406,10 @@
 
     document.getElementById('btnRegenerateAll').addEventListener('click', function () {
       if (currentTask) runBreakdown(currentTask, 'regenerate');
+    });
+
+    document.getElementById('chkLeafOnly').addEventListener('change', function () {
+      renderTree();
     });
 
     document.getElementById('tree').addEventListener('click', async function (e) {

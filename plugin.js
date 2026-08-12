@@ -151,14 +151,6 @@ function openSidePanel() {
   } catch (e) {
     // ignore
   }
-  try {
-    if (typeof PluginAPI?.showIndexHtmlAsView === 'function') {
-      PluginAPI.showIndexHtmlAsView();
-      return true;
-    }
-  } catch (e) {
-    // ignore
-  }
   return false;
 }
 
@@ -189,11 +181,8 @@ async function handleHeaderClick() {
     }
     task.depth = await computeDepth(task.id);
 
-    // Open the side panel (via the auto side-panel toggle button) and hand the
-    // task to the iframe. No intermediate dialog needed — the iframe loads the
-    // task and runs the breakdown itself.
-    openSidePanel();
     sendBreakdownRequest(task);
+    PluginAPI.showSnack({ msg: 'Open the Magic ToDo sidebar to see the picked task.', type: 'INFO' });
   } catch (e) {
     PluginAPI.showSnack({ msg: 'Magic ToDo: ' + e.message, type: 'ERROR' });
   }

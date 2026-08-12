@@ -1290,11 +1290,11 @@
     }
 
     // ==================== SETTINGS ====================
-    function openSettings() {
+    async function openSettings() {
       var cfg = null;
       try {
         if (typeof PluginAPI?.loadSyncedData === 'function') {
-          const saved = PluginAPI.loadSyncedData('magicTodoConfig');
+          const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
           if (saved) cfg = JSON.parse(saved);
         }
       } catch (e) {
@@ -1593,17 +1593,20 @@
     // ==================== BOOTSTRAP ====================
     async function init() {
       try {
-        var readyTimer = setInterval(function () {
-          window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
-        }, 400);
-        window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
-        setTimeout(function () {
-          clearInterval(readyTimer);
-          if (!config) {
-            console.log('[MagicToDo] still no config after retries, requesting from host');
-            window.parent.postMessage({ type: 'magic-get-config' }, '*');
+        // Load config directly from PluginAPI first, like sp-autoplan-plugin.
+        try {
+          if (typeof PluginAPI?.loadSyncedData === 'function') {
+            const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
+            if (saved) {
+              config = JSON.parse(saved);
+              console.log('[MagicToDo] config loaded from PluginAPI on init');
+            }
           }
-        }, 2000);
+        } catch (e) {
+          console.warn('[MagicToDo] init PluginAPI load failed', e);
+        }
+
+        window.parent.postMessage({ type: 'magic-iframe-ready' }, '*');
         await renderAll();
       } catch (e) {
         console.error('[MagicToDo] init failed:', e);

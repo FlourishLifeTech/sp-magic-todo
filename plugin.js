@@ -142,13 +142,18 @@ function openSidePanel() {
       if (tooltip.indexOf('magic todo') !== -1 || tooltip.indexOf('magic-todo') !== -1 ||
           ariaLabel.indexOf('magic todo') !== -1 || ariaLabel.indexOf('magic-todo') !== -1 ||
           text.indexOf('magic todo') !== -1 || text.indexOf('magic-todo') !== -1) {
-        if (!btn.classList.contains('active')) {
-          btn.click();
-          iframeReady = false;
-          iframeWindow = null;
-        }
+        btn.click();
+        iframeReady = false;
+        iframeWindow = null;
         return;
       }
+    }
+  } catch (e) {
+    // ignore
+  }
+  try {
+    if (typeof PluginAPI?.showIndexHtmlAsView === 'function') {
+      PluginAPI.showIndexHtmlAsView();
     }
   } catch (e) {
     // ignore

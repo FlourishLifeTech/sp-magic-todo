@@ -1585,6 +1585,20 @@
         return;
       }
 
+      if (data.type === 'magic-task-picked') {
+        if (data && data.task && data.task.id) {
+          currentTask = {
+            id: data.task.id,
+            title: data.task.title,
+            notes: data.task.notes || '',
+            projectId: data.task.projectId || null,
+            depth: data.task.depth !== undefined ? data.task.depth : 0
+          };
+          await renderAll();
+        }
+        return;
+      }
+
       if (data.type === 'magic-task-updated') {
         await renderAll();
         return;

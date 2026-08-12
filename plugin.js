@@ -192,11 +192,8 @@ async function handleHeaderClick() {
     // Open the side panel (via the auto side-panel toggle button) and hand the
     // task to the iframe. No intermediate dialog needed — the iframe loads the
     // task and runs the breakdown itself.
-    const opened = openSidePanel();
+    openSidePanel();
     sendBreakdownRequest(task);
-    if (!opened) {
-      PluginAPI.showSnack({ msg: 'Open the Magic ToDo sidebar to see the picked task.', type: 'INFO' });
-    }
   } catch (e) {
     PluginAPI.showSnack({ msg: 'Magic ToDo: ' + e.message, type: 'ERROR' });
   }

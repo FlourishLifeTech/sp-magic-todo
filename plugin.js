@@ -30,9 +30,20 @@ function sendToIframe(msg) {
 
 async function loadConfig() {
   try {
-    const saved = await PluginAPI.loadSyncedData(CONFIG_KEY);
+    const saved = await PluginAPI.loadSyncedData?.(CONFIG_KEY);
     if (saved) {
       config = JSON.parse(saved);
+      console.log('[MagicToDo] config loaded via PluginAPI');
+      return;
+    }
+  } catch (e) {
+    console.warn('[MagicToDo] PluginAPI.loadSyncedData failed, falling back to localStorage', e);
+  }
+  try {
+    const saved = localStorage.getItem(CONFIG_KEY);
+    if (saved) {
+      config = JSON.parse(saved);
+      console.log('[MagicToDo] config loaded via localStorage');
     } else {
       config = null;
     }
@@ -44,9 +55,17 @@ async function loadConfig() {
 async function saveConfig(cfg) {
   config = cfg;
   try {
-    await PluginAPI.persistDataSynced(JSON.stringify(cfg), CONFIG_KEY);
+    await PluginAPI.persistDataSynced?.(JSON.stringify(cfg), CONFIG_KEY);
+    console.log('[MagicToDo] config saved via PluginAPI');
+    return;
   } catch (e) {
-    // ignore persistence errors
+    console.warn('[MagicToDo] PluginAPI.persistDataSynced failed, falling back to localStorage', e);
+  }
+  try {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+    console.log('[MagicToDo] config saved via localStorage');
+  } catch (e) {
+    // ignore storage errors
   }
 }
 

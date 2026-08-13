@@ -436,6 +436,23 @@
       color: var(--text-color-muted, #888);
       margin-bottom: var(--s);
     }
+
+    .donation-footer {
+      text-align: center;
+      padding: var(--s2) var(--s);
+      margin-top: var(--s2);
+      border-top: 1px solid var(--divider-color);
+    }
+
+    .donation-footer a {
+      color: var(--c-primary);
+      text-decoration: none;
+      font-size: 0.9em;
+    }
+
+    .donation-footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -588,6 +605,12 @@
         <button id="btnEditSave" class="icon-btn primary">Save</button>
       </div>
     </div>
+  </div>
+
+  <div class="donation-footer">
+    <a href="https://opencollective.com/FLT" target="_blank" rel="noopener noreferrer">
+      If you like this plugin, consider supporting its development ❤️
+    </a>
   </div>
 
   <script>

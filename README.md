@@ -2,6 +2,12 @@
 
 Break tasks into subtasks with an OpenAI-compatible AI endpoint. Up to 3 levels: task, subtasks, and checklist sub-subtasks.
 
+The extension is inspired by Goblin Tools. 
+## screenshots
+![Screenshot](screenshot1.png)
+![Screenshot](screenshot2.png)
+
+
 ## Installation
 
 1. Download `magic-todo-plugin.zip`

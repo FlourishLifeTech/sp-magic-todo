@@ -1206,9 +1206,30 @@
       return instr ? '\n\nAdditional user instructions for this breakdown:\n' + instr : '';
     }
 
+    // Ensure the module-level config is populated from storage before use.
+    // The saved config may exist even if init()'s async load or the host's
+    // magic-init message did not reach us, which previously caused the settings
+    // panel to open on every breakdown despite settings being saved.
+    async function ensureConfig() {
+      if (config && config.baseUrl) return config;
+      try {
+        if (typeof PluginAPI?.loadSyncedData === 'function') {
+          const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
+          if (saved) {
+            config = JSON.parse(saved);
+            console.log('[MagicToDo] config loaded lazily before breakdown');
+          }
+        }
+      } catch (e) {
+        console.warn('[MagicToDo] lazy config load failed', e);
+      }
+      return config;
+    }
+
     async function runBreakdown(task, mode) {
       // mode: 'create' | 'regenerate' | 'rewrite'
       try {
+        await ensureConfig();
         if (!config || !config.baseUrl) {
           showSnack('Configure the AI endpoint first (⚙️ Settings)', 'WARNING');
           openSettings();
@@ -1591,6 +1612,9 @@
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'magic-init') {
+        if (data.config) {
+          config = data.config;
+        }
         if (data.currentTaskId) {
           currentTask = { id: data.currentTaskId };
         }

@@ -755,6 +755,7 @@
         var reqId = ++reqCounter;
         msg.reqId = reqId;
         var handler = function (event) {
+          console.log('[MagicToDo] postToHost reqId=' + reqId + ' received:', JSON.stringify(event.data));
           if (event.data && event.data.reqId === reqId) {
             window.removeEventListener('message', handler);
             resolve(event.data);
@@ -763,6 +764,7 @@
         window.addEventListener('message', handler);
         try {
           window.parent.postMessage(msg, '*');
+          console.log('[MagicToDo] postToHost reqId=' + reqId + ' sent:', JSON.stringify(msg));
         } catch (e) {
           window.removeEventListener('message', handler);
           resolve(null);

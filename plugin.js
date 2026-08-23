@@ -191,6 +191,7 @@ async function handleHeaderClick() {
 // ---- Host-side task picker dialog (proven pattern from task-color-plugin) ----
 async function openTaskPicker() {
   try {
+    console.log('[MagicToDo] openTaskPicker start');
     const tasks = await PluginAPI.getTasks();
     const activeTasks = tasks.filter(t => !t.isDone);
     if (activeTasks.length === 0) {
@@ -276,6 +277,7 @@ async function openTaskPicker() {
     document.addEventListener('input', inputHandler);
     document.addEventListener('change', inputHandler);
 
+    console.log('[MagicToDo] openTaskPicker opening dialog');
     await PluginAPI.openDialog({
       title: 'Pick a task',
       htmlContent: pickerHtml,
@@ -294,6 +296,7 @@ async function openTaskPicker() {
         }
       ]
     });
+    console.log('[MagicToDo] openTaskPicker dialog closed, selectedTaskId=' + selectedTaskId);
 
     document.removeEventListener('mousedown', clickHandler, true);
     document.removeEventListener('input', inputHandler);
@@ -407,7 +410,14 @@ function register() {
 
     if (data.type === 'magic-open-task-picker') {
       if (event.source !== iframeWindow) return;
-      const task = await openTaskPicker();
+      console.log('[MagicToDo] received magic-open-task-picker from ' + (event.source === iframeWindow ? 'trusted iframe' : 'unknown'));
+      let task = null;
+      try {
+        task = await openTaskPicker();
+      } catch (e) {
+        console.error('[MagicToDo] openTaskPicker threw:', e);
+      }
+      console.log('[MagicToDo] magic-open-task-picker result task=' + (task ? task.id : 'null'));
       if (event.source) {
         event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, event.origin);
       }

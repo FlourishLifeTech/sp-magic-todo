@@ -202,6 +202,28 @@ async function openTaskPicker() {
     const projectMap = {};
     projects.forEach(p => { projectMap[p.id] = p.title; });
 
+    // Build a map of parentId -> child ids for depth computation
+    const parentMap = {};
+    const taskMap = {};
+    activeTasks.forEach(t => {
+      taskMap[t.id] = t;
+      if (t.parentId) {
+        if (!parentMap[t.parentId]) parentMap[t.parentId] = [];
+        parentMap[t.parentId].push(t.id);
+      }
+    });
+
+    function computeDepth(taskId) {
+      let depth = 0;
+      let cur = taskMap[taskId];
+      while (cur && cur.parentId && taskMap[cur.parentId]) {
+        depth++;
+        cur = taskMap[cur.parentId];
+        if (depth >= 3) break;
+      }
+      return depth;
+    }
+
     const sortedTasks = activeTasks.slice().sort((a, b) => {
       const timeA = a.updated || a.created || 0;
       const timeB = b.updated || b.created || 0;
@@ -214,18 +236,31 @@ async function openTaskPicker() {
       projectOptions.push('<option value="' + p.id + '">' + escapeHtml(p.title) + '</option>');
     });
 
-    function buildTaskListHtml(taskList, projectId) {
+    const levelOptions = [
+      { value: '0', label: '1st level (main tasks)' },
+      { value: '1', label: '2nd level (+ subtasks)' },
+      { value: '2', label: '3rd level (+ checklist)' }
+    ];
+    const levelOptionHtml = levelOptions.map(o => '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>').join('');
+
+    function buildTaskListHtml(taskList, projectId, maxDepth) {
       let filtered = taskList.slice();
       if (projectId) {
         filtered = filtered.filter(t => t.projectId === projectId);
+      }
+      if (maxDepth !== '') {
+        filtered = filtered.filter(t => computeDepth(t.id) <= parseInt(maxDepth, 10));
       }
       if (filtered.length === 0) {
         return '<div style="padding:12px;color:var(--text-color-muted);text-align:center;">No tasks match</div>';
       }
       return filtered.map(t => {
         const projectTitle = t.projectId ? (projectMap[t.projectId] || '') : '';
-        const label = escapeHtml(t.title) + (projectTitle ? ' <span style="color:var(--text-color-muted);font-size:0.85em;">(' + escapeHtml(projectTitle) + ')</span>' : '');
-        return '<div class="mt-pick-item" data-task-id="' + t.id + '" style="padding:8px;cursor:pointer;border-bottom:1px solid var(--divider-color);">' + label + '</div>';
+        const depth = computeDepth(t.id);
+        const indent = depth > 0 ? 'margin-left:' + (depth * 16) + 'px;' : '';
+        const badge = depth > 0 ? ' <span style="color:var(--text-color-muted);font-size:0.8em;">(' + ['main','subtask','checklist'][depth] + ')</span>' : '';
+        const label = escapeHtml(t.title) + badge + (projectTitle ? ' <span style="color:var(--text-color-muted);font-size:0.85em;">(' + escapeHtml(projectTitle) + ')</span>' : '');
+        return '<div class="mt-pick-item" data-task-id="' + t.id + '" style="padding:8px;cursor:pointer;border-bottom:1px solid var(--divider-color);' + indent + '">' + label + '</div>';
       }).join('');
     }
 
@@ -233,9 +268,10 @@ async function openTaskPicker() {
       '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">' +
         '<input type="text" id="mt-search-input" placeholder="Search tasks..." style="flex:2;min-width:140px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);" />' +
         '<select id="mt-project-filter" style="flex:1;min-width:100px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + projectOptions.join('') + '</select>' +
+        '<select id="mt-level-filter" style="flex:1;min-width:120px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + levelOptionHtml + '</select>' +
       '</div>' +
       '<div id="mt-picker-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--divider-color);border-radius:4px;background:var(--card-bg);">' +
-        buildTaskListHtml(sortedTasks, '') +
+        buildTaskListHtml(sortedTasks, '', '') +
       '</div>' +
     '</div>';
 
@@ -260,16 +296,19 @@ async function openTaskPicker() {
     const inputHandler = () => {
       const searchInput = document.getElementById('mt-search-input');
       const projectFilter = document.getElementById('mt-project-filter');
+      const levelFilter = document.getElementById('mt-level-filter');
       const list = document.getElementById('mt-picker-list');
       if (!searchInput || !projectFilter || !list) return;
       const query = searchInput.value.toLowerCase().trim();
       const projectId = projectFilter.value;
+      const maxDepth = levelFilter ? levelFilter.value : '';
       const filtered = sortedTasks.filter(t => {
         const matchesSearch = !query || t.title.toLowerCase().includes(query);
         const matchesProject = !projectId || t.projectId === projectId;
-        return matchesSearch && matchesProject;
+        const matchesLevel = maxDepth === '' || computeDepth(t.id) <= parseInt(maxDepth, 10);
+        return matchesSearch && matchesProject && matchesLevel;
       });
-      list.innerHTML = buildTaskListHtml(filtered, projectId);
+      list.innerHTML = buildTaskListHtml(filtered, projectId, maxDepth);
     };
 
     document.addEventListener('mousedown', clickHandler, true);
@@ -302,7 +341,7 @@ async function openTaskPicker() {
     if (selectedTaskId) {
       const task = activeTasks.find(t => t.id === selectedTaskId);
       if (task) {
-        const depth = await computeDepth(task.id);
+        const depth = computeDepth(task.id);
         return {
           id: task.id,
           title: task.title,

@@ -355,13 +355,14 @@ function register() {
     if (!data || typeof data !== 'object') return;
     console.log('[MagicToDo] host received message:', JSON.stringify(data), 'from source:', !!event.source, 'iframeWindow:', !!iframeWindow);
     if (!event.source) return;
+    var targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*';
 
     if (data.type === 'magic-get-config') {
       if (event.source !== iframeWindow) return;
       if (event.source) {
         const safeConfig = { ...(config || {}) };
         delete safeConfig.apiKey;
-        event.source.postMessage({ type: 'magic-config-response', config: safeConfig }, event.origin);
+        event.source.postMessage({ type: 'magic-config-response', config: safeConfig }, targetOrigin);
       }
       return;
     }
@@ -384,12 +385,12 @@ function register() {
         await saveConfig(data.config || {});
         PluginAPI.showSnack({ msg: 'Magic ToDo settings saved', type: 'SUCCESS' });
         if (event.source) {
-          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: config }, event.origin);
+          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: config }, targetOrigin);
         }
       } catch (e) {
         PluginAPI.showSnack({ msg: 'Failed to save settings: ' + e.message, type: 'ERROR' });
         if (event.source) {
-          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: null, error: e.message }, event.origin);
+          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: null, error: e.message }, targetOrigin);
         }
       }
       return;
@@ -405,7 +406,7 @@ function register() {
           type: 'magic-current-task-resolved',
           reqId: data.reqId,
           task: task ? { id: task.id, title: task.title, notes: task.notes || '', projectId: task.projectId || null, depth: depth } : null
-        }, event.origin);
+        }, targetOrigin);
       }
       return;
     }
@@ -421,7 +422,7 @@ function register() {
       }
       console.log('[MagicToDo] magic-open-task-picker result task=' + (task ? task.id : 'null'));
       if (event.source) {
-        event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, event.origin);
+        event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, targetOrigin);
       }
       return;
     }
@@ -440,11 +441,11 @@ function register() {
           id = data.id;
         }
         if (event.source) {
-          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: true, id: id }, event.origin);
+          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: true, id: id }, targetOrigin);
         }
       } catch (e) {
         if (event.source) {
-          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: false, error: e.message }, event.origin);
+          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: false, error: e.message }, targetOrigin);
         }
       }
       return;
@@ -482,11 +483,11 @@ function register() {
         if (result.error) throw new Error(result.error.message || JSON.stringify(result.error));
         var content = result.choices && result.choices[0] && result.choices[0].message ? result.choices[0].message.content : '';
         if (event.source) {
-          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: content }, event.origin);
+          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: content }, targetOrigin);
         }
       } catch (e) {
         if (event.source) {
-          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: null, error: e.message }, event.origin);
+          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: null, error: e.message }, targetOrigin);
         }
       }
       return;

@@ -354,7 +354,7 @@ function register() {
     if (data.type === 'magic-get-config') {
       if (event.source !== iframeWindow) return;
       if (event.source) {
-        event.source.postMessage({ type: 'magic-config-response', config: config }, '*');
+        event.source.postMessage({ type: 'magic-config-response', config: config }, event.origin);
       }
       return;
     }
@@ -378,12 +378,12 @@ function register() {
         await saveConfig(data.config || {});
         PluginAPI.showSnack({ msg: 'Magic ToDo settings saved', type: 'SUCCESS' });
         if (event.source) {
-          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: config }, '*');
+          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: config }, event.origin);
         }
       } catch (e) {
         PluginAPI.showSnack({ msg: 'Failed to save settings: ' + e.message, type: 'ERROR' });
         if (event.source) {
-          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: null, error: e.message }, '*');
+          event.source.postMessage({ type: 'magic-config-saved', reqId: data.reqId, config: null, error: e.message }, event.origin);
         }
       }
       return;
@@ -399,7 +399,7 @@ function register() {
           type: 'magic-current-task-resolved',
           reqId: data.reqId,
           task: task ? { id: task.id, title: task.title, notes: task.notes || '', projectId: task.projectId || null, depth: depth } : null
-        }, '*');
+        }, event.origin);
       }
       return;
     }
@@ -408,7 +408,7 @@ function register() {
       if (event.source !== iframeWindow) return;
       const task = await openTaskPicker();
       if (event.source) {
-        event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, '*');
+        event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, event.origin);
       }
       return;
     }
@@ -427,11 +427,11 @@ function register() {
           id = data.id;
         }
         if (event.source) {
-          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: true, id: id }, '*');
+          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: true, id: id }, event.origin);
         }
       } catch (e) {
         if (event.source) {
-          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: false, error: e.message }, '*');
+          event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: false, error: e.message }, event.origin);
         }
       }
       return;

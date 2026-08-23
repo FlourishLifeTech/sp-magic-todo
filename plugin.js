@@ -270,7 +270,7 @@ async function openTaskPicker() {
         '<select id="mt-project-filter" style="flex:1;min-width:100px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + projectOptions.join('') + '</select>' +
         '<select id="mt-level-filter" style="flex:1;min-width:120px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + levelOptionHtml + '</select>' +
         '<label style="flex:1;min-width:140px;font-size:0.9em;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);">' +
-          '<input type="checkbox" id="mt-leaf-only" style="width:auto;margin:0;" /> No subtasks' +
+          '<input type="checkbox" id="mt-leaf-only" style="width:auto;margin:0;" /> Tasks without subtasks' +
         '</label>' +
       '</div>' +
       '<div id="mt-picker-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--divider-color);border-radius:4px;background:var(--card-bg);">' +

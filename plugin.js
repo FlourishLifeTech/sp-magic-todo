@@ -323,6 +323,7 @@ async function openTaskPicker() {
 }
 
 function register() {
+  console.log('[MagicToDo] register() called');
   PluginAPI.registerHeaderButton({
     label: 'Magic ToDo',
     icon: 'auto_awesome',
@@ -350,8 +351,9 @@ function register() {
   });
 
   window.addEventListener('message', async (event) => {
-    const data = event.data;
+    var data = event.data;
     if (!data || typeof data !== 'object') return;
+    console.log('[MagicToDo] host received message:', JSON.stringify(data), 'from source:', !!event.source, 'iframeWindow:', !!iframeWindow);
     if (!event.source) return;
 
     if (data.type === 'magic-get-config') {

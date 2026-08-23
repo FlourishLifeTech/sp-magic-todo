@@ -1468,10 +1468,22 @@
     });
 
     document.getElementById('btnChangeTask').addEventListener('click', async function () {
+      console.log('[MagicToDo] iframe sending magic-open-task-picker');
       var res = await postToHost({ type: 'magic-open-task-picker' });
-      if (res && res.task) {
-        currentTask = res.task;
+      console.log('[MagicToDo] iframe got magic-task-picked response:', res ? 'has task=' + (res.task ? res.task.id : 'null') : 'null response');
+      if (res && res.task && res.task.id) {
+        currentTask = {
+          id: res.task.id,
+          title: res.task.title,
+          notes: res.task.notes || '',
+          projectId: res.task.projectId || null,
+          depth: res.task.depth !== undefined ? res.task.depth : 0
+        };
+        console.log('[MagicToDo] iframe updated currentTask:', currentTask.id);
         await renderAll();
+        console.log('[MagicToDo] iframe renderAll done');
+      } else {
+        console.log('[MagicToDo] iframe ignored response, no valid task');
       }
     });
 
@@ -1619,6 +1631,7 @@
       }
 
       if (data.type === 'magic-task-picked') {
+        console.log('[MagicToDo] iframe received magic-task-picked:', JSON.stringify(data));
         if (data && data.task && data.task.id) {
           currentTask = {
             id: data.task.id,
@@ -1627,7 +1640,11 @@
             projectId: data.task.projectId || null,
             depth: data.task.depth !== undefined ? data.task.depth : 0
           };
+          console.log('[MagicToDo] iframe updated currentTask to:', currentTask.id);
           await renderAll();
+          console.log('[MagicToDo] iframe renderAll done');
+        } else {
+          console.log('[MagicToDo] iframe ignored magic-task-picked, no valid task');
         }
         return;
       }

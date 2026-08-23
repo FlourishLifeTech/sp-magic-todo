@@ -408,7 +408,6 @@ function register() {
 
     if (data.type === 'magic-open-task-picker') {
       if (event.source !== iframeWindow) return;
-      console.log('[MagicToDo] received magic-open-task-picker from ' + (event.source === iframeWindow ? 'trusted iframe' : 'unknown'));
       let task = null;
       try {
         task = await openTaskPicker();

@@ -1,4 +1,3 @@
-    console.log('[MagicToDo] iframe script starting');
 
     // ==================== STATE ====================
     var config = null;
@@ -587,7 +586,6 @@
           const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
           if (saved) {
             config = JSON.parse(saved);
-            console.log('[MagicToDo] config loaded lazily before breakdown');
           }
         }
       } catch (e) {
@@ -862,6 +860,7 @@
           depth: res.task.depth !== undefined ? res.task.depth : 0
         };
         await renderAll();
+      } else {
       }
     });
 
@@ -1018,6 +1017,7 @@
             depth: data.task.depth !== undefined ? data.task.depth : 0
           };
           await renderAll();
+        } else {
         }
         return;
       }
@@ -1055,7 +1055,6 @@
             const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
             if (saved) {
               config = JSON.parse(saved);
-              console.log('[MagicToDo] config loaded from PluginAPI on init');
             }
           }
         } catch (e) {

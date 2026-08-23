@@ -265,10 +265,13 @@ async function openTaskPicker() {
     }
 
     const pickerHtml = '<div id="mt-picker-dialog" style="padding:8px 0;">' +
-      '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">' +
+      '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">' +
         '<input type="text" id="mt-search-input" placeholder="Search tasks..." style="flex:2;min-width:140px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);" />' +
         '<select id="mt-project-filter" style="flex:1;min-width:100px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + projectOptions.join('') + '</select>' +
         '<select id="mt-level-filter" style="flex:1;min-width:120px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);color:var(--text-color);font-family:var(--font-primary-stack);">' + levelOptionHtml + '</select>' +
+        '<label style="flex:1;min-width:180px;font-size:0.9em;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px;border-radius:4px;border:1px solid var(--divider-color);background:var(--card-bg);">' +
+          '<input type="checkbox" id="mt-leaf-only" style="width:auto;margin:0;" /> Only main tasks without subtasks' +
+        '</label>' +
       '</div>' +
       '<div id="mt-picker-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--divider-color);border-radius:4px;background:var(--card-bg);">' +
         buildTaskListHtml(sortedTasks, '', '') +
@@ -297,16 +300,19 @@ async function openTaskPicker() {
       const searchInput = document.getElementById('mt-search-input');
       const projectFilter = document.getElementById('mt-project-filter');
       const levelFilter = document.getElementById('mt-level-filter');
+      const leafOnly = document.getElementById('mt-leaf-only');
       const list = document.getElementById('mt-picker-list');
       if (!searchInput || !projectFilter || !list) return;
       const query = searchInput.value.toLowerCase().trim();
       const projectId = projectFilter.value;
       const maxDepth = levelFilter ? levelFilter.value : '';
+      const onlyLeaf = leafOnly ? leafOnly.checked : false;
       const filtered = sortedTasks.filter(t => {
         const matchesSearch = !query || t.title.toLowerCase().includes(query);
         const matchesProject = !projectId || t.projectId === projectId;
         const matchesLevel = maxDepth === '' || computeDepth(t.id) <= parseInt(maxDepth, 10);
-        return matchesSearch && matchesProject && matchesLevel;
+        const matchesLeaf = !onlyLeaf || (computeDepth(t.id) === 0 && !parentMap[t.id]);
+        return matchesSearch && matchesProject && matchesLevel && matchesLeaf;
       });
       list.innerHTML = buildTaskListHtml(filtered, projectId, maxDepth);
     };

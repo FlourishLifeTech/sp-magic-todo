@@ -354,7 +354,9 @@ function register() {
     if (data.type === 'magic-get-config') {
       if (event.source !== iframeWindow) return;
       if (event.source) {
-        event.source.postMessage({ type: 'magic-config-response', config: config }, event.origin);
+        const safeConfig = { ...(config || {}) };
+        delete safeConfig.apiKey;
+        event.source.postMessage({ type: 'magic-config-response', config: safeConfig }, event.origin);
       }
       return;
     }
@@ -432,6 +434,48 @@ function register() {
       } catch (e) {
         if (event.source) {
           event.source.postMessage({ type: 'magic-task-crud-result', reqId: data.reqId, ok: false, error: e.message }, event.origin);
+        }
+      }
+      return;
+    }
+
+    if (data.type === 'magic-ai-request') {
+      if (event.source !== iframeWindow) return;
+      try {
+        if (!config || !config.baseUrl) {
+          throw new Error('Configure the AI endpoint first');
+        }
+        var baseUrl = String(config.baseUrl).replace(/\/+$/, '');
+        var headers = { 'Content-Type': 'application/json' };
+        if (config.apiKey) headers['Authorization'] = 'Bearer ' + config.apiKey;
+        var body = {
+          model: config.model || 'gpt-4o',
+          messages: [
+            { role: 'system', content: data.systemPrompt || '' },
+            { role: 'user', content: data.userPrompt || '' }
+          ],
+          max_tokens: parseInt(data.maxTokens || config.maxTokens || '2048', 10) || 2048,
+          temperature: data.temperature !== undefined ? parseFloat(data.temperature) : (config.temperature !== undefined ? parseFloat(config.temperature) : 0.7)
+        };
+        var resp = await fetch(baseUrl + '/chat/completions', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+          var t = '';
+          try { t = await resp.text(); } catch (e) {}
+          throw new Error('API ' + resp.status + ': ' + t.slice(0, 300));
+        }
+        var result = await resp.json();
+        if (result.error) throw new Error(result.error.message || JSON.stringify(result.error));
+        var content = result.choices && result.choices[0] && result.choices[0].message ? result.choices[0].message.content : '';
+        if (event.source) {
+          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: content }, event.origin);
+        }
+      } catch (e) {
+        if (event.source) {
+          event.source.postMessage({ type: 'magic-ai-response', reqId: data.reqId, content: null, error: e.message }, event.origin);
         }
       }
       return;

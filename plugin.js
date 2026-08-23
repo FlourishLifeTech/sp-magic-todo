@@ -191,7 +191,6 @@ async function handleHeaderClick() {
 // ---- Host-side task picker dialog (proven pattern from task-color-plugin) ----
 async function openTaskPicker() {
   try {
-    console.log('[MagicToDo] openTaskPicker start');
     const tasks = await PluginAPI.getTasks();
     const activeTasks = tasks.filter(t => !t.isDone);
     if (activeTasks.length === 0) {
@@ -277,7 +276,6 @@ async function openTaskPicker() {
     document.addEventListener('input', inputHandler);
     document.addEventListener('change', inputHandler);
 
-    console.log('[MagicToDo] openTaskPicker opening dialog');
     await PluginAPI.openDialog({
       title: 'Pick a task',
       htmlContent: pickerHtml,
@@ -296,7 +294,6 @@ async function openTaskPicker() {
         }
       ]
     });
-    console.log('[MagicToDo] openTaskPicker dialog closed, selectedTaskId=' + selectedTaskId);
 
     document.removeEventListener('mousedown', clickHandler, true);
     document.removeEventListener('input', inputHandler);
@@ -323,7 +320,6 @@ async function openTaskPicker() {
 }
 
 function register() {
-  console.log('[MagicToDo] register() called');
   PluginAPI.registerHeaderButton({
     label: 'Magic ToDo',
     icon: 'auto_awesome',
@@ -351,9 +347,8 @@ function register() {
   });
 
   window.addEventListener('message', async (event) => {
-    var data = event.data;
+    const data = event.data;
     if (!data || typeof data !== 'object') return;
-    console.log('[MagicToDo] host received message:', JSON.stringify(data), 'from source:', !!event.source, 'iframeWindow:', !!iframeWindow);
     if (!event.source) return;
     var targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*';
 
@@ -420,7 +415,6 @@ function register() {
       } catch (e) {
         console.error('[MagicToDo] openTaskPicker threw:', e);
       }
-      console.log('[MagicToDo] magic-open-task-picker result task=' + (task ? task.id : 'null'));
       if (event.source) {
         event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, targetOrigin);
       }

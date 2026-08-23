@@ -349,8 +349,10 @@ function register() {
   window.addEventListener('message', async (event) => {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
+    if (!event.source) return;
 
     if (data.type === 'magic-get-config') {
+      if (event.source !== iframeWindow) return;
       if (event.source) {
         event.source.postMessage({ type: 'magic-config-response', config: config }, '*');
       }
@@ -358,6 +360,7 @@ function register() {
     }
 
     if (data.type === 'magic-iframe-ready') {
+      if (iframeWindow !== null && event.source !== iframeWindow) return;
       iframeWindow = event.source;
       iframeReady = true;
       sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });
@@ -370,6 +373,7 @@ function register() {
     }
 
     if (data.type === 'magic-save-config') {
+      if (event.source !== iframeWindow) return;
       try {
         await saveConfig(data.config || {});
         PluginAPI.showSnack({ msg: 'Magic ToDo settings saved', type: 'SUCCESS' });
@@ -386,6 +390,7 @@ function register() {
     }
 
     if (data.type === 'magic-get-current-task') {
+      if (event.source !== iframeWindow) return;
       const task = await resolveTargetTask();
       let depth = 0;
       if (task) depth = await computeDepth(task.id);
@@ -400,6 +405,7 @@ function register() {
     }
 
     if (data.type === 'magic-open-task-picker') {
+      if (event.source !== iframeWindow) return;
       const task = await openTaskPicker();
       if (event.source) {
         event.source.postMessage({ type: 'magic-task-picked', reqId: data.reqId, task: task }, '*');
@@ -408,6 +414,7 @@ function register() {
     }
 
     if (data.type === 'magic-task-crud') {
+      if (event.source !== iframeWindow) return;
       try {
         let id = null;
         if (data.action === 'add') {

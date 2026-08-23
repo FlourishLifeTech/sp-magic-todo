@@ -468,8 +468,8 @@
       <div class="empty-state">No task selected.</div>
     </div>
     <div class="toolbar">
-      <button id="btnBreakDown" class="icon-btn primary">🤖 Break down</button>
       <button id="btnChangeTask" class="icon-btn">Change task…</button>
+      <button id="btnBreakDown" class="icon-btn primary">🤖 Break down</button>
       <button id="btnEditTask" class="icon-btn">✎ Edit</button>
     </div>
     <div class="hint">Main task: add subtasks or a checklist. Subtask: checklist only.</div>
@@ -1661,7 +1661,7 @@
       try {
         // Load config directly from PluginAPI first, like sp-autoplan-plugin.
         try {
-          if (typeof PluginAPI?.loadSyncedData === 'function') {
+          if (typeof PluginAPI !== 'undefined' && typeof PluginAPI?.loadSyncedData === 'function') {
             const saved = await PluginAPI.loadSyncedData('magicTodoConfig');
             if (saved) {
               config = JSON.parse(saved);
@@ -1679,10 +1679,25 @@
       }
     }
 
-    if (PluginAPI.onReady) {
-      PluginAPI.onReady(init);
+    if (typeof PluginAPI !== 'undefined') {
+      if (PluginAPI.onReady) {
+        PluginAPI.onReady(init);
+      } else {
+        init();
+      }
     } else {
-      init();
+      console.warn('[MagicToDo] PluginAPI not available at bootstrap, deferring init');
+      setTimeout(function () {
+        if (typeof PluginAPI !== 'undefined') {
+          if (PluginAPI.onReady) {
+            PluginAPI.onReady(init);
+          } else {
+            init();
+          }
+        } else {
+          console.error('[MagicToDo] PluginAPI still not available after defer');
+        }
+      }, 50);
     }
   </script>
 </body>

@@ -362,13 +362,6 @@ function register() {
     }
 
     if (data.type === 'magic-iframe-ready') {
-      var existingAlive = false;
-      try {
-        existingAlive = !!iframeWindow && !!iframeWindow.document;
-      } catch (e) {
-        existingAlive = false;
-      }
-      if (existingAlive && event.source !== iframeWindow) return;
       iframeWindow = event.source;
       iframeReady = true;
       sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });

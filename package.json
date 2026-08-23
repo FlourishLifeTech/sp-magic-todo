@@ -1,0 +1,24 @@
+{
+  "name": "magic-todo-plugin",
+  "version": "1.3.0",
+  "description": "Break tasks into subtasks with an OpenAI-compatible AI endpoint. Up to 3 levels: task, subtasks, and checklist sub-subtasks.",
+  "main": "plugin.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "zip": "node build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FlourishLifeTech/sp-magic-todo.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/FlourishLifeTech/sp-magic-todo/issues"
+  },
+  "homepage": "https://github.com/FlourishLifeTech/sp-magic-todo#readme",
+  "devDependencies": {
+    "vite": "^8.2.2",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}

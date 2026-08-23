@@ -1,3 +1,5 @@
 conversations/
 .goopspec/
 .git/
+node_modules/
+dist/

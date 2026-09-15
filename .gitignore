@@ -3,3 +3,4 @@ conversations/
 .git/
 node_modules/
 dist/
+plugin.zip

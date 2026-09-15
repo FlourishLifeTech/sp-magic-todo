@@ -809,6 +809,16 @@
         }
       }
       config = cfg;
+
+      try {
+        const hostResult = await postToHost({ type: 'magic-save-config', config: cfg });
+        if (hostResult && hostResult.error) {
+          throw new Error(hostResult.error);
+        }
+      } catch (e) {
+        console.warn('[MagicToDo] host config refresh failed', e);
+      }
+
       showSnack('Settings saved', 'SUCCESS');
       closeSettings();
     }

@@ -28,6 +28,18 @@ function sendToIframe(msg) {
   }
 }
 
+// Only trust frames the host actually mounted for THIS plugin. Super Productivity
+// renders side-panel/index iframes with data-plugin-iframe + data-plugin-id set
+// from the manifest id, so a sibling plugin iframe can never claim this role.
+function getMagicIframeWindows() {
+  const wins = [];
+  document.querySelectorAll('iframe[data-plugin-iframe][data-plugin-id="magic-todo"]')
+    .forEach((f) => {
+      if (f.contentWindow) wins.push(f.contentWindow);
+    });
+  return wins;
+}
+
 async function loadConfig() {
   let loaded = false;
   try {
@@ -408,9 +420,12 @@ function register() {
     }
 
     if (data.type === 'magic-iframe-ready') {
+      if (!getMagicIframeWindows().includes(event.source)) return;
       iframeWindow = event.source;
       iframeReady = true;
-      sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });
+      const safeConfig = { ...(config || {}) };
+      delete safeConfig.apiKey;
+      sendToIframe({ type: 'magic-init', config: safeConfig, currentTaskId: lastCurrentTaskId });
       if (pendingBreakdown) {
         const p = pendingBreakdown;
         pendingBreakdown = null;
@@ -550,7 +565,9 @@ async function init() {
     await loadConfig();
 
     if (iframeReady && iframeWindow) {
-      sendToIframe({ type: 'magic-init', config: config, currentTaskId: lastCurrentTaskId });
+      const safeConfig = { ...(config || {}) };
+      delete safeConfig.apiKey;
+      sendToIframe({ type: 'magic-init', config: safeConfig, currentTaskId: lastCurrentTaskId });
     }
   } catch (e) {
     console.error('Magic ToDo plugin init failed:', e);

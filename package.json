@@ -1,6 +1,6 @@
 {
   "name": "magic-todo-plugin",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Break tasks into subtasks with an OpenAI-compatible AI endpoint. Up to 3 levels: task, subtasks, and checklist sub-subtasks.",
   "main": "plugin.js",
   "scripts": {
